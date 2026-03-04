@@ -1,5 +1,6 @@
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import SupabaseDataManager from "../utils/supabaseDataManager";
 
 // Initial sample entries data
 const INITIAL_ENTRIES = [
@@ -52,37 +53,53 @@ export default function ClientWorkspace() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   // Load entries from localStorage or use sample data
-  const [entries, setEntries] = useState(() => {
-    const savedEntries = localStorage.getItem("auraa-entries");
-    return savedEntries ? JSON.parse(savedEntries) : INITIAL_ENTRIES;
-  });
-
-  // Save entries to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("auraa-entries", JSON.stringify(entries));
-  }, [entries]);
-
-  // Load completed projects from localStorage
-  const [completedProjects, setCompletedProjects] = useState(() => {
-    const savedProjects = localStorage.getItem("auraa-completed-projects");
-    return savedProjects ? JSON.parse(savedProjects) : [];
-  });
-
-  // Save completed projects to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(
-      "auraa-completed-projects",
-      JSON.stringify(completedProjects),
-    );
-  }, [completedProjects]);
-
+  // Load clients from Supabase
+  const [clients, setClients] = useState<any[]>([]);
+  const [entries, setEntries] = useState<any[]>([]);
+  const [completedProjects, setCompletedProjects] = useState<any[]>([]);
   const [editingEntry, setEditingEntry] = useState(null);
 
-  // Load clients from localStorage to get client names
-  const [clients, setClients] = useState(() => {
-    const savedClients = localStorage.getItem("auraa-clients");
-    return savedClients ? JSON.parse(savedClients) : [];
-  });
+  // Load data from Supabase on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load clients
+        const clientsData = await SupabaseDataManager.getClients();
+        setClients(clientsData);
+
+        // Load projects for completed projects
+        const projectsData = await SupabaseDataManager.getProjects();
+        const completed = projectsData.filter((p) => p.status === "completed");
+        setCompletedProjects(completed);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    const clientsSubscription = SupabaseDataManager.subscribeToClients(
+      (updatedClients) => {
+        setClients(updatedClients);
+      },
+    );
+
+    const projectsSubscription = SupabaseDataManager.subscribeToProjects(
+      (updatedProjects) => {
+        const completed = updatedProjects.filter(
+          (p) => p.status === "completed",
+        );
+        setCompletedProjects(completed);
+      },
+    );
+
+    return () => {
+      clientsSubscription.unsubscribe();
+      projectsSubscription.unsubscribe();
+    };
+  }, []);
 
   // Get client name from URL parameter by looking up client data
   const getClientName = () => {

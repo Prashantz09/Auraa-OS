@@ -213,18 +213,14 @@ export default function Settings() {
 
     try {
       const currentUser = await SupabaseDataManager.getCurrentUser();
-      const user = {
-        name: newUser.name,
-        email: newUser.email,
-        password: newUser.password,
-        role: newUser.role as "admin" | "editor" | "viewer",
-        status: "active" as const,
-        avatar: newUser.name.charAt(0).toUpperCase(),
-        created_by: currentUser?.id || "",
-      };
 
-      // Add user using SupabaseDataManager
-      await SupabaseDataManager.addUser(user);
+      // First create auth user with Supabase
+      const authUser = await SupabaseDataManager.signUp(
+        newUser.email,
+        newUser.password,
+        newUser.name,
+        newUser.role as "admin" | "editor" | "viewer",
+      );
 
       // Refresh users list
       const updatedUsers = await SupabaseDataManager.getUsers();
@@ -238,41 +234,79 @@ export default function Settings() {
       });
       alert("User added successfully! All team members can now see this user.");
     } catch (error) {
-      alert(`Error adding user: ${error}`);
+      console.error("Error adding user:", error);
+      alert(
+        `Error adding user: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   };
 
-  const handleUpdateUser = (e: React.FormEvent) => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingUser) {
-      const updatedUsers = users.map((u) =>
-        u.id === editingUser.id ? editingUser : u,
-      );
-      setUsers(updatedUsers);
-      localStorage.setItem("auraa-users", JSON.stringify(updatedUsers));
-      setEditingUser(null);
-      setShowAddUser(false);
-      alert("User updated successfully!");
+      try {
+        // Update user in Supabase
+        await SupabaseDataManager.updateUser(editingUser.id, {
+          name: editingUser.name,
+          email: editingUser.email,
+          role: editingUser.role,
+          status: editingUser.status,
+          avatar: editingUser.avatar,
+        });
+
+        // Refresh users list
+        const updatedUsers = await SupabaseDataManager.getUsers();
+        setUsers(updatedUsers);
+        setEditingUser(null);
+        setShowAddUser(false);
+        alert("User updated successfully!");
+      } catch (error) {
+        console.error("Error updating user:", error);
+        alert(
+          `Error updating user: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (confirm("Are you sure you want to delete this user?")) {
-      const updatedUsers = users.filter((u) => u.id !== userId);
-      setUsers(updatedUsers);
-      localStorage.setItem("auraa-users", JSON.stringify(updatedUsers));
-      alert("User deleted successfully!");
+      try {
+        // Delete user from Supabase
+        await SupabaseDataManager.deleteUser(userId);
+
+        // Refresh users list
+        const updatedUsers = await SupabaseDataManager.getUsers();
+        setUsers(updatedUsers);
+        alert("User deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        alert(
+          `Error deleting user: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
     }
   };
 
-  const handleToggleUserStatus = (userId: string) => {
-    const updatedUsers = users.map((u) =>
-      u.id === userId
-        ? { ...u, status: u.status === "active" ? "inactive" : "active" }
-        : u,
-    );
-    setUsers(updatedUsers);
-    localStorage.setItem("auraa-users", JSON.stringify(updatedUsers));
+  const handleToggleUserStatus = async (userId: string) => {
+    try {
+      const user = users.find((u) => u.id === userId);
+      if (user) {
+        const newStatus = user.status === "active" ? "inactive" : "active";
+
+        // Update user status in Supabase
+        await SupabaseDataManager.updateUser(userId, { status: newStatus });
+
+        // Refresh users list
+        const updatedUsers = await SupabaseDataManager.getUsers();
+        setUsers(updatedUsers);
+      }
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      alert(
+        `Error updating user status: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   };
 
   const handleLogout = () => {

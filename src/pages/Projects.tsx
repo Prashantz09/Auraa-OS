@@ -339,53 +339,45 @@ export default function Projects() {
     }
   };
 
-  const handleAddProject = (e: React.FormEvent) => {
+  const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const project = {
-      id: Math.max(...projects.map((p) => p.id)) + 1,
-      ...formData,
-    };
+    try {
+      // Get current user for created_by field
+      const currentUser = await SupabaseDataManager.getCurrentUser();
 
-    setProjects((prev) => [project, ...prev]);
+      // Create project in Supabase
+      const newProject = await SupabaseDataManager.addProject({
+        title: formData.title,
+        client: formData.client,
+        status: "planning", // Default status for new projects
+        priority: formData.priority,
+        deadline: formData.deadline,
+        description: formData.description,
+        progress: 0,
+        team: [], // Empty team initially
+        created_by: currentUser?.id || "unknown",
+      });
 
-    // Update client's project count and add project to client
-    const updatedClients = clients.map((client) => {
-      if (client.name === formData.client) {
-        return {
-          ...client,
-          monthlyProjects: client.monthlyProjects + 1,
-          totalProjects: client.totalProjects + 1,
-          thisMonthProjects: [
-            ...client.thisMonthProjects,
-            {
-              id: project.id,
-              title: project.title,
-              date: new Date().toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              }),
-              service: project.service,
-            },
-          ],
-        };
-      }
-      return client;
-    });
+      // Reset form
+      setShowAddForm(false);
+      setFormData({
+        title: "",
+        client: "",
+        service: "",
+        editor: "",
+        date: "",
+        status: "working",
+        description: "",
+        deadline: "",
+        priority: "medium",
+      });
 
-    setClients(updatedClients);
-    setShowAddForm(false);
-    setFormData({
-      title: "",
-      client: "",
-      service: "",
-      editor: "",
-      date: "",
-      status: "working",
-      description: "",
-      deadline: "",
-      priority: "medium",
-    });
+      alert("Project added successfully!");
+    } catch (error) {
+      console.error("Error adding project:", error);
+      alert("Error adding project. Please try again.");
+    }
   };
 
   const handleQuickEdit = (project: any) => {
@@ -393,14 +385,11 @@ export default function Projects() {
     setFormData(project);
   };
 
-  const handleUpdateProject = (e: React.FormEvent) => {
+  const handleUpdateProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const updatedProject = { ...formData, id: editingProject.id };
-
-    // Check if project is being marked as completed
-    const isCompleting =
-      formData.status === "completed" && editingProject.status !== "completed";
+    const isCompleting = formData.status === "completed";
 
     if (isCompleting) {
       // Move to completed projects
@@ -411,16 +400,13 @@ export default function Projects() {
         completedBy: editingProject.editor,
       };
 
-      // Add to completed projects localStorage
-      const existingCompleted = JSON.parse(
-        localStorage.getItem("auraa-completed-projects") || "[]",
-      );
-      localStorage.setItem(
-        "auraa-completed-projects",
-        JSON.stringify([...existingCompleted, completedProject]),
-      );
+      // Update project status to completed in Supabase
+      await SupabaseDataManager.updateProject(editingProject.id, {
+        status: "completed",
+        progress: 100,
+      });
 
-      // Remove from active projects
+      // Remove from active projects (will be updated by real-time subscription)
       setProjects((prev) => prev.filter((p) => p.id !== editingProject.id));
 
       // Update client's project counts
@@ -444,10 +430,24 @@ export default function Projects() {
         `Project "${updatedProject.title}" marked as completed and moved to client workspace!`,
       );
     } else {
-      // Regular update
-      setProjects((prev) =>
-        prev.map((p) => (p.id === editingProject.id ? updatedProject : p)),
-      );
+      // Regular update - update project in Supabase
+      try {
+        await SupabaseDataManager.updateProject(editingProject.id, {
+          title: updatedProject.title,
+          client: updatedProject.client,
+          status: updatedProject.status,
+          priority: updatedProject.priority,
+          deadline: updatedProject.deadline,
+          description: updatedProject.description,
+          progress: updatedProject.progress || 0,
+        });
+
+        // Local state will be updated by real-time subscription
+      } catch (error) {
+        console.error("Error updating project:", error);
+        alert("Error updating project. Please try again.");
+        return;
+      }
     }
 
     setEditingProject(null);
@@ -464,28 +464,18 @@ export default function Projects() {
     });
   };
 
-  const handleDeleteProject = (id: number) => {
-    const projectToDelete = projects.find((p) => p.id === id);
+  const handleDeleteProject = async (id: string) => {
+    if (confirm("Are you sure you want to delete this project?")) {
+      try {
+        // Delete project from Supabase
+        await SupabaseDataManager.deleteProject(id);
 
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-
-    // Update client's project count and remove project from client
-    if (projectToDelete) {
-      const updatedClients = clients.map((client) => {
-        if (client.name === projectToDelete.client) {
-          return {
-            ...client,
-            monthlyProjects: Math.max(0, client.monthlyProjects - 1),
-            totalProjects: Math.max(0, client.totalProjects - 1),
-            thisMonthProjects: client.thisMonthProjects.filter(
-              (p) => p.id !== id,
-            ),
-          };
-        }
-        return client;
-      });
-
-      setClients(updatedClients);
+        // Local state will be updated by real-time subscription
+        alert("Project deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        alert("Error deleting project. Please try again.");
+      }
     }
   };
 
