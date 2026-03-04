@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import DataManager from "../utils/dataManager";
+import SupabaseDataManager from "../utils/supabaseDataManager";
 
 // Enhanced sample data for clients with monthly projects
 const CLIENTS = [
@@ -133,20 +133,38 @@ const CLIENTS = [
 ];
 
 export default function ClientDirectory() {
-  // Load clients from DataManager for team collaboration
-  const [clients, setClients] = useState(() => DataManager.getClients());
-  const [currentUser, setCurrentUser] = useState(() =>
-    DataManager.getCurrentUser(),
-  );
-
-  // Save clients to DataManager whenever they change
-  useEffect(() => {
-    DataManager.saveClients(clients);
-  }, [clients]);
+  // Load clients from SupabaseDataManager for team collaboration
+  const [clients, setClients] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Update current user state
   useEffect(() => {
-    setCurrentUser(DataManager.getCurrentUser());
+    const loadData = async () => {
+      try {
+        const [clientsData, currentUserData] = await Promise.all([
+          SupabaseDataManager.getClients(),
+          SupabaseDataManager.getCurrentUser(),
+        ]);
+        setClients(clientsData);
+        setCurrentUser(currentUserData);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    const subscription = SupabaseDataManager.subscribeToClients(
+      (updatedClients) => {
+        setClients(updatedClients);
+      },
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -192,7 +210,7 @@ export default function ClientDirectory() {
     };
   };
 
-  const handleAddClient = (e: React.FormEvent) => {
+  const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate required fields
@@ -209,28 +227,31 @@ export default function ClientDirectory() {
     try {
       // Generate avatar for this client
       const avatar = generateClientAvatar(newClient.name.trim());
+      const currentUser = await SupabaseDataManager.getCurrentUser();
 
-      // Create new client using DataManager (shared across all users)
+      // Create new client using SupabaseDataManager (shared across all users)
       const newClientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim() || "",
         phone: newClient.phone.trim(),
         status: "Active" as const,
         activity: "Just now",
-        monthlyProjects: 0,
-        thisMonthProjects: [],
-        totalProjects: 0,
-        clientSince: new Date().toISOString().split("T")[0],
+        monthly_projects: 0,
+        this_month_projects: [],
+        total_projects: 0,
+        client_since: new Date().toISOString().split("T")[0],
         priority: "Medium" as const,
         budget: "Standard" as const,
-        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClient.name.trim())}&background=${avatar.color.replace("from-", "").replace(" to-", "&color=")}&color=white`, // Use avatar service
+        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClient.name.trim())}&background=${avatar.color.replace("from-", "").replace(" to-", "&color=")}&color=white`,
+        created_by: currentUser?.id || "",
       };
 
-      // Add client using DataManager (visible to all users)
-      DataManager.addClient(newClientData);
+      // Add client using SupabaseDataManager (visible to all users)
+      await SupabaseDataManager.addClient(newClientData);
 
       // Refresh clients list
-      setClients(DataManager.getClients());
+      const updatedClients = await SupabaseDataManager.getClients();
+      setClients(updatedClients);
 
       // Reset form and close modal
       setShowAddClient(false);
@@ -245,18 +266,19 @@ export default function ClientDirectory() {
     }
   };
 
-  const handleDeleteClient = (clientId: string) => {
+  const handleDeleteClient = async (clientId: string) => {
     if (
       confirm(
         "Are you sure you want to delete this client? This action cannot be undone.",
       )
     ) {
       try {
-        // Use DataManager with permission checks
-        const success = DataManager.deleteClient(clientId);
+        // Use SupabaseDataManager with permission checks
+        const success = await SupabaseDataManager.deleteClient(clientId);
         if (success) {
           // Refresh clients list
-          setClients(DataManager.getClients());
+          const updatedClients = await SupabaseDataManager.getClients();
+          setClients(updatedClients);
           alert("Client deleted successfully!");
         }
       } catch (error) {

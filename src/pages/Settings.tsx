@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DataManager from "../utils/dataManager";
+import SupabaseDataManager from "../utils/supabaseDataManager";
 
 // Sample users data - only admin remains, other users must be created
 const SAMPLE_USERS = [
@@ -20,8 +20,34 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const [showAddUser, setShowAddUser] = useState(false);
   const [showUserPassword, setShowUserPassword] = useState(false);
-  const [users, setUsers] = useState(() => DataManager.getUsers());
+  const [users, setUsers] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState(null);
+
+  // Load users from Supabase
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const usersData = await SupabaseDataManager.getUsers();
+        setUsers(usersData);
+      } catch (error) {
+        console.error("Error loading users:", error);
+      }
+    };
+    loadUsers();
+  }, []);
+
+  // Set up real-time subscription for users
+  useEffect(() => {
+    const subscription = SupabaseDataManager.subscribeToUsers(
+      (updatedUsers) => {
+        setUsers(updatedUsers);
+      },
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Notification state
   const [notifications, setNotifications] = useState(() => {
@@ -182,27 +208,31 @@ export default function Settings() {
     }
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
+      const currentUser = await SupabaseDataManager.getCurrentUser();
       const user = {
         name: newUser.name,
+        email: newUser.email,
         password: newUser.password,
         role: newUser.role as "admin" | "editor" | "viewer",
         status: "active" as const,
         avatar: newUser.name.charAt(0).toUpperCase(),
+        created_by: currentUser?.id || "",
       };
 
-      // Add user using DataManager
-      DataManager.addUser(user);
+      // Add user using SupabaseDataManager
+      await SupabaseDataManager.addUser(user);
 
       // Refresh users list
-      setUsers(DataManager.getUsers());
+      const updatedUsers = await SupabaseDataManager.getUsers();
+      setUsers(updatedUsers);
       setShowAddUser(false);
       setNewUser({
         name: "",
-        userId: "",
+        email: "",
         password: "",
         role: "editor",
       });
