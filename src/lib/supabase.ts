@@ -6,7 +6,14 @@ const supabaseUrl =
   "https://kwyyorcrrtipwtrqcumw.supabase.co";
 const supabaseAnonKey =
   (import.meta as any).env.VITE_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3eWlvcmNycnRpcHd0cnFjdW13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MTUxNjAsImV4cCI6MjA4MTg5MTE2MH0.KSBQ7jEi8n8YL_pW-uU6oqqCGmKgjE2VPniWK57gmo4";
+  "sb_publishable_Ykq5fcGTt_WukBvvtf7fPw_fDFNmUD3";
+
+// Debug logging
+console.log("Supabase URL:", supabaseUrl);
+console.log(
+  "Supabase Key (first 10 chars):",
+  supabaseAnonKey.substring(0, 10) + "...",
+);
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
