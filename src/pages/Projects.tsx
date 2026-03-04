@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import SupabaseDataManager from "../utils/supabaseDataManager";
 
 // Sample projects data
 const SAMPLE_PROJECTS = [
@@ -212,27 +214,46 @@ const CLIENTS = [
 ];
 
 export default function Projects() {
-  // Load projects from localStorage or use sample data
-  const [projects, setProjects] = useState(() => {
-    const savedProjects = localStorage.getItem("auraa-projects");
-    return savedProjects ? JSON.parse(savedProjects) : SAMPLE_PROJECTS;
-  });
+  // Load projects and clients from Supabase for team collaboration
+  const [projects, setProjects] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
 
-  // Load clients from localStorage
-  const [clients, setClients] = useState(() => {
-    const savedClients = localStorage.getItem("auraa-clients");
-    return savedClients ? JSON.parse(savedClients) : [];
-  });
-
-  // Save clients to localStorage whenever they change
+  // Load data from Supabase
   useEffect(() => {
-    localStorage.setItem("auraa-clients", JSON.stringify(clients));
-  }, [clients]);
+    const loadData = async () => {
+      try {
+        const [projectsData, clientsData] = await Promise.all([
+          SupabaseDataManager.getProjects(),
+          SupabaseDataManager.getClients(),
+        ]);
+        setProjects(projectsData);
+        setClients(clientsData);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    loadData();
+  }, []);
 
-  // Save projects to localStorage whenever they change
+  // Set up real-time subscriptions
   useEffect(() => {
-    localStorage.setItem("auraa-projects", JSON.stringify(projects));
-  }, [projects]);
+    const projectsSubscription = SupabaseDataManager.subscribeToProjects(
+      (updatedProjects) => {
+        setProjects(updatedProjects);
+      },
+    );
+
+    const clientsSubscription = SupabaseDataManager.subscribeToClients(
+      (updatedClients) => {
+        setClients(updatedClients);
+      },
+    );
+
+    return () => {
+      projectsSubscription.unsubscribe();
+      clientsSubscription.unsubscribe();
+    };
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClient, setFilterClient] = useState("all");
