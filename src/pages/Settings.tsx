@@ -18,6 +18,7 @@ export default function Settings() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("profile");
   const [showAddUser, setShowAddUser] = useState(false);
+  const [showUserPassword, setShowUserPassword] = useState(false);
   const [users, setUsers] = useState(() => {
     const savedUsers = localStorage.getItem("auraa-users");
     return savedUsers ? JSON.parse(savedUsers) : SAMPLE_USERS;
@@ -1035,30 +1036,41 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={
-                      editingUser ? editingUser.password : newUser.password
-                    }
-                    onChange={(e) =>
-                      editingUser
-                        ? setEditingUser((prev) => ({
-                            ...prev,
-                            password: e.target.value,
-                          }))
-                        : setNewUser((prev) => ({
-                            ...prev,
-                            password: e.target.value,
-                          }))
-                    }
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder={
-                      editingUser
-                        ? "Update password (leave blank to keep current)"
-                        : "Enter password"
-                    }
-                    required={!editingUser}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showUserPassword ? "text" : "password"}
+                      value={
+                        editingUser ? editingUser.password : newUser.password
+                      }
+                      onChange={(e) =>
+                        editingUser
+                          ? setEditingUser((prev) => ({
+                              ...prev,
+                              password: e.target.value,
+                            }))
+                          : setNewUser((prev) => ({
+                              ...prev,
+                              password: e.target.value,
+                            }))
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      placeholder={
+                        editingUser
+                          ? "Update password (leave blank to keep current)"
+                          : "Enter password"
+                      }
+                      required={!editingUser}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                      onClick={() => setShowUserPassword(!showUserPassword)}
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        {showUserPassword ? "visibility_off" : "visibility"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 <div>
