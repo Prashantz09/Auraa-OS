@@ -262,7 +262,14 @@ export default function ClientDirectory() {
         `Client "${newClientData.name}" added successfully! All team members can now see this client.`,
       );
     } catch (error) {
-      alert(`Error adding client: ${error}`);
+      console.error("Error adding client:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : error && typeof error === "object" && "message" in error
+            ? error.message
+            : JSON.stringify(error);
+      alert(`Error adding client: ${errorMessage}`);
     }
   };
 
