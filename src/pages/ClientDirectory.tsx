@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Enhanced sample data for clients with monthly projects
 const CLIENTS = [
@@ -132,6 +132,17 @@ const CLIENTS = [
 ];
 
 export default function ClientDirectory() {
+  // Load clients from localStorage or use sample data
+  const [clients, setClients] = useState(() => {
+    const savedClients = localStorage.getItem("auraa-clients");
+    return savedClients ? JSON.parse(savedClients) : CLIENTS;
+  });
+
+  // Save clients to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("auraa-clients", JSON.stringify(clients));
+  }, [clients]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddClient, setShowAddClient] = useState(false);
   const [newClient, setNewClient] = useState({
@@ -140,16 +151,94 @@ export default function ClientDirectory() {
     phone: "",
   });
 
-  const filteredClients = CLIENTS.filter((client) =>
+  const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // Generate unique avatar for client based on name
+  const generateClientAvatar = (clientName: string) => {
+    const colors = [
+      "from-blue-500 to-blue-600",
+      "from-green-500 to-green-600",
+      "from-purple-500 to-purple-600",
+      "from-pink-500 to-pink-600",
+      "from-indigo-500 to-indigo-600",
+      "from-red-500 to-red-600",
+      "from-amber-500 to-amber-600",
+      "from-teal-500 to-teal-600",
+      "from-orange-500 to-orange-600",
+      "from-cyan-500 to-cyan-600",
+    ];
+
+    const initials = clientName
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join("");
+
+    const colorIndex =
+      clientName.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+      colors.length;
+
+    return {
+      initials,
+      color: colors[colorIndex],
+    };
+  };
+
   const handleAddClient = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle add client logic here
-    console.log("Adding client:", newClient);
+
+    // Validate required fields
+    if (!newClient.name.trim()) {
+      alert("Client name is required");
+      return;
+    }
+
+    if (!newClient.phone.trim()) {
+      alert("Phone number is required");
+      return;
+    }
+
+    // Generate unique avatar for this client
+    const avatar = generateClientAvatar(newClient.name.trim());
+
+    // Create new client object with unique ID
+    const newClientData = {
+      id: `client_${Date.now()}`, // Generate unique ID
+      name: newClient.name.trim(),
+      email: newClient.email.trim() || "",
+      phone: newClient.phone.trim(),
+      status: "Active",
+      activity: "Just now",
+      monthlyProjects: 0,
+      thisMonthProjects: [],
+      totalProjects: 0,
+      clientSince: new Date().toISOString().split("T")[0],
+      priority: "Medium",
+      budget: "Standard",
+      avatar: avatar, // Add avatar data
+    };
+
+    // Add to clients list
+    setClients((prev) => [...prev, newClientData]);
+
+    // Reset form and close modal
     setShowAddClient(false);
     setNewClient({ name: "", email: "", phone: "" });
+
+    // Show success message
+    alert(`Client "${newClientData.name}" added successfully!`);
+  };
+
+  const handleDeleteClient = (clientId: string) => {
+    if (
+      confirm(
+        "Are you sure you want to delete this client? This action cannot be undone.",
+      )
+    ) {
+      setClients((prev) => prev.filter((client) => client.id !== clientId));
+    }
   };
 
   const getServiceIcon = (service: string) => {
@@ -234,7 +323,7 @@ export default function ClientDirectory() {
               <span className="material-symbols-outlined text-[20px] opacity-80">
                 group
               </span>
-              <span className="text-xl font-bold">{CLIENTS.length}</span>
+              <span className="text-xl font-bold">{clients.length}</span>
             </div>
             <p className="text-xs opacity-90">Total Clients</p>
           </div>
@@ -244,7 +333,7 @@ export default function ClientDirectory() {
                 assignment
               </span>
               <span className="text-xl font-bold">
-                {CLIENTS.reduce(
+                {clients.reduce(
                   (sum, client) => sum + client.monthlyProjects,
                   0,
                 )}
@@ -278,14 +367,24 @@ export default function ClientDirectory() {
               {/* Client Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-surface-border to-[#161822] flex items-center justify-center overflow-hidden">
-                    <img
-                      alt={client.name}
-                      className="w-full h-full object-cover"
-                      src={client.image}
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
+                  {client.avatar ? (
+                    // New client with generated avatar
+                    <div
+                      className={`w-12 h-12 rounded-xl bg-gradient-to-br ${client.avatar.color} flex items-center justify-center text-white font-bold text-lg shadow-lg`}
+                    >
+                      {client.avatar.initials}
+                    </div>
+                  ) : (
+                    // Existing client with image
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-surface-border to-[#161822] flex items-center justify-center overflow-hidden">
+                      <img
+                        alt={client.name}
+                        className="w-full h-full object-cover"
+                        src={client.image}
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
                   <div>
                     <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
                       {client.name}
@@ -360,6 +459,16 @@ export default function ClientDirectory() {
 
               {/* Quick Actions */}
               <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-surface-border">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteClient(client.id);
+                  }}
+                  className="px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  Delete
+                </button>
                 <button className="flex-1 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-surface-border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   Edit Client
                 </button>
@@ -419,7 +528,7 @@ export default function ClientDirectory() {
                     setNewClient((prev) => ({ ...prev, email: e.target.value }))
                   }
                   className="w-full rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  required
+                  placeholder="Optional: client@example.com"
                 />
               </div>
               <div>

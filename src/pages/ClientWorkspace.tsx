@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 // Initial sample entries data
 const INITIAL_ENTRIES = [
@@ -8,7 +8,6 @@ const INITIAL_ENTRIES = [
     title: "Ep. 42: The Future of Space Travel",
     service: "Podcast",
     quantity: 1,
-    amount: 450,
     date: "Oct 24",
     editor: "Patrick S.",
     editorInitial: "P",
@@ -19,7 +18,6 @@ const INITIAL_ENTRIES = [
     title: "Why Coding is Changing",
     service: "YouTube",
     quantity: 2,
-    amount: 850,
     date: "Oct 22",
     editor: "Alex M.",
     editorInitial: "A",
@@ -30,7 +28,6 @@ const INITIAL_ENTRIES = [
     title: "Clip: AI Ethics Debate",
     service: "Shorts",
     quantity: 3,
-    amount: 150,
     date: "Oct 20",
     editor: "Patrick S.",
     editorInitial: "P",
@@ -41,7 +38,6 @@ const INITIAL_ENTRIES = [
     title: "NordVPN Integrated Ad",
     service: "Sponsor",
     quantity: 1,
-    amount: 300,
     date: "Oct 18",
     editor: "Alex M.",
     editorInitial: "A",
@@ -51,122 +47,88 @@ const INITIAL_ENTRIES = [
 
 export default function ClientWorkspace() {
   const navigate = useNavigate();
+  const { id } = useParams(); // Get client ID from URL parameter
   const [showProjectMenu, setShowProjectMenu] = useState(false);
-  const [showEntryMenu, setShowEntryMenu] = useState(null);
-  const [entries, setEntries] = useState(INITIAL_ENTRIES);
-  const [editingEntry, setEditingEntry] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
-  // New project form state
-  const [newProject, setNewProject] = useState({
-    title: "",
-    service: "",
-    quantity: 1,
-    amount: "",
+  // Load entries from localStorage or use sample data
+  const [entries, setEntries] = useState(() => {
+    const savedEntries = localStorage.getItem("auraa-entries");
+    return savedEntries ? JSON.parse(savedEntries) : INITIAL_ENTRIES;
   });
 
-  // Handle new project form changes
-  const handleProjectChange = (e) => {
-    const { name, value } = e.target;
-    setNewProject((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  // Save entries to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("auraa-entries", JSON.stringify(entries));
+  }, [entries]);
+
+  // Load completed projects from localStorage
+  const [completedProjects, setCompletedProjects] = useState(() => {
+    const savedProjects = localStorage.getItem("auraa-completed-projects");
+    return savedProjects ? JSON.parse(savedProjects) : [];
+  });
+
+  // Save completed projects to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(
+      "auraa-completed-projects",
+      JSON.stringify(completedProjects),
+    );
+  }, [completedProjects]);
+
+  const [editingEntry, setEditingEntry] = useState(null);
+
+  // Load clients from localStorage to get client names
+  const [clients, setClients] = useState(() => {
+    const savedClients = localStorage.getItem("auraa-clients");
+    return savedClients ? JSON.parse(savedClients) : [];
+  });
+
+  // Get client name from URL parameter by looking up client data
+  const getClientName = () => {
+    console.log("Current URL ID:", id);
+    console.log("Available clients:", clients);
+    if (id) {
+      // Look up client by ID
+      const client = clients.find((c) => c.id === id);
+      if (client) {
+        console.log("Found client by ID:", id, "name:", client.name);
+        return client.name;
+      } else {
+        console.log("Client not found for ID:", id, "using ID as name");
+        return decodeURIComponent(id).replace(/-/g, " ");
+      }
+    }
+    console.log("No URL param found, using default client name.");
+    return "TechTalk Podcast"; // Default client
   };
 
-  // Handle new project submission
-  const handleCreateEntry = (e) => {
-    e.preventDefault();
+  // Filter completed projects by current client
+  const getClientCompletedProjects = () => {
+    const clientName = getClientName();
+    console.log("Client workspace for:", clientName);
+    console.log("Available completed projects:", completedProjects);
 
-    // Validate form
-    if (!newProject.title.trim() || !newProject.service || !newProject.amount) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    // Get service colors and editor info
-    const getServiceInfo = (service) => {
-      const serviceMap = {
-        podcast: {
-          color: "purple",
-          editor: "Patrick S.",
-          initial: "P",
-          editorColor: "from-indigo-500 to-purple-600",
-        },
-        youtube: {
-          color: "red",
-          editor: "Alex M.",
-          initial: "A",
-          editorColor: "from-orange-500 to-red-600",
-        },
-        short: {
-          color: "blue",
-          editor: "Patrick S.",
-          initial: "P",
-          editorColor: "from-indigo-500 to-purple-600",
-        },
-        thumbnail: {
-          color: "emerald",
-          editor: "Alex M.",
-          initial: "A",
-          editorColor: "from-orange-500 to-red-600",
-        },
-      };
-      return serviceMap[service] || serviceMap.podcast;
-    };
-
-    const serviceInfo = getServiceInfo(newProject.service);
-
-    // Create new entry
-    const newEntry = {
-      id: Math.max(...entries.map((e) => e.id)) + 1,
-      title: newProject.title,
-      service:
-        newProject.service === "podcast"
-          ? "Podcast"
-          : newProject.service === "youtube"
-            ? "YouTube"
-            : newProject.service === "short"
-              ? "Shorts"
-              : newProject.service === "thumbnail"
-                ? "Thumbnail"
-                : "Podcast",
-      quantity: parseInt(newProject.quantity),
-      amount: parseFloat(newProject.amount),
-      date: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      editor: serviceInfo.editor,
-      editorInitial: serviceInfo.initial,
-      editorColor: serviceInfo.editorColor,
-    };
-
-    // Add to entries
-    setEntries((prev) => [newEntry, ...prev]);
-
-    // Reset form
-    setNewProject({
-      title: "",
-      service: "",
-      quantity: 1,
-      amount: "",
+    return completedProjects.filter((project) => {
+      const matches =
+        project.client &&
+        project.client.toLowerCase().trim() === clientName.toLowerCase().trim();
+      console.log(
+        `Project "${project.title}" - client: "${project.client}" - matches: ${matches}`,
+      );
+      return matches;
     });
-
-    // Show success message
-    alert("Project entry created successfully!");
   };
 
   // Handle entry editing
   const handleEditEntry = (entry) => {
     setEditingEntry({ ...entry });
-    setShowEntryMenu(null);
   };
 
   // Handle entry update
   const handleUpdateEntry = (e) => {
     e.preventDefault();
-    if (!editingEntry.title.trim() || !editingEntry.amount) {
+    if (!editingEntry.title.trim()) {
       alert("Please fill in all required fields");
       return;
     }
@@ -183,10 +145,23 @@ export default function ClientWorkspace() {
 
   // Handle entry deletion
   const handleDeleteEntry = (id) => {
+    // Check if this is a completed project (shouldn't be deleted)
+    const isCompletedProject = completedProjects.some(
+      (project) => project.id === id,
+    );
+
+    if (isCompletedProject) {
+      alert(
+        "Completed projects cannot be deleted. They are archived in the client workspace.",
+      );
+      setShowDeleteConfirm(null);
+      return;
+    }
+
+    // Only allow deletion of regular entries
     setEntries((prev) => prev.filter((entry) => entry.id !== id));
     setShowDeleteConfirm(null);
-    setShowEntryMenu(null);
-    alert("Entry deleted successfully!");
+    alert("Project deleted successfully!");
   };
 
   // Handle entry duplicate
@@ -202,8 +177,46 @@ export default function ClientWorkspace() {
     };
 
     setEntries((prev) => [duplicatedEntry, ...prev]);
-    setShowEntryMenu(null);
     alert("Entry duplicated successfully!");
+  };
+
+  // Handle report generation
+  const handleGenerateReport = () => {
+    // Create report content
+    const currentDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const reportNumber = `RPT-${Date.now()}`;
+    const clientName = "TechTalk Podcast";
+
+    let csvContent = "Report Number: " + reportNumber + "\n";
+    csvContent += "Date: " + currentDate + "\n";
+    csvContent += "Client: " + clientName + "\n";
+    csvContent += "\n";
+    csvContent += "Project Title,Service Type,Quantity,Date,Editor\n";
+
+    entries.forEach((entry) => {
+      csvContent += `"${entry.title}","${entry.service}",${entry.quantity},"${entry.date}","${entry.editor}"\n`;
+    });
+
+    csvContent += "\n";
+    csvContent += "Total Projects: " + entries.length + "\n";
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `report-${clientName.replace(/\s+/g, "-")}-${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    alert("Report downloaded successfully!");
   };
 
   // Handle invoice download
@@ -222,24 +235,14 @@ export default function ClientWorkspace() {
     csvContent += "Date: " + currentDate + "\n";
     csvContent += "Client: " + clientName + "\n";
     csvContent += "\n";
-    csvContent += "Item,Service,Quantity,Amount,Total\n";
+    csvContent += "Project Title,Service Type,Quantity,Date,Editor\n";
 
-    let subtotal = 0;
     entries.forEach((entry) => {
-      const itemTotal = entry.amount * entry.quantity;
-      csvContent += `"${entry.title}","${entry.service}",${entry.quantity},${entry.amount},${itemTotal}\n`;
-      subtotal += itemTotal;
+      csvContent += `"${entry.title}","${entry.service}",${entry.quantity},"${entry.date}","${entry.editor}"\n`;
     });
 
     csvContent += "\n";
-    csvContent += "Subtotal,,," + subtotal + "\n";
-
-    // Add tax (10%)
-    const tax = subtotal * 0.1;
-    csvContent += "Tax (10%),,,," + tax.toFixed(2) + "\n";
-
-    const total = subtotal + tax;
-    csvContent += "Total,,,,," + total.toFixed(2) + "\n";
+    csvContent += "Total Projects: " + entries.length + "\n";
 
     // Create and download file
     const blob = new Blob([csvContent], { type: "text/csv" });
@@ -271,12 +274,6 @@ export default function ClientWorkspace() {
     return colorMap[service] || colorMap.Podcast;
   };
 
-  // Calculate total revenue
-  const totalRevenue = entries.reduce(
-    (sum, entry) => sum + entry.amount * entry.quantity,
-    0,
-  );
-
   return (
     <div className="flex-1 overflow-y-auto pb-24">
       {/* Header */}
@@ -291,7 +288,7 @@ export default function ClientWorkspace() {
         </button>
         <div className="flex flex-col items-center">
           <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">
-            TechTalk Podcast
+            {getClientName()}
           </h2>
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Client Workspace
@@ -316,6 +313,30 @@ export default function ClientWorkspace() {
                 onClick={() => setShowProjectMenu(false)}
               />
               <div className="absolute right-0 top-12 z-20 w-48 bg-white dark:bg-surface-dark rounded-lg shadow-lg border border-slate-200 dark:border-surface-border py-2">
+                <button
+                  onClick={() => {
+                    setShowProjectMenu(false);
+                    handleGenerateReport();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3"
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    bar_chart
+                  </span>
+                  Generate Report
+                </button>
+                <button
+                  onClick={() => {
+                    setShowProjectMenu(false);
+                    handleDownloadInvoice();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3"
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    request_quote
+                  </span>
+                  Download Invoice
+                </button>
                 <button
                   onClick={() => {
                     setShowProjectMenu(false);
@@ -375,263 +396,159 @@ export default function ClientWorkspace() {
         </div>
       </header>
 
-      <div className="px-4 pt-6 pb-2">
-        {/* Total Revenue Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-surface-dark to-[#161822] p-6 border border-surface-border shadow-lg group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-[80px] text-primary">
-              analytics
-            </span>
-          </div>
-          <div className="relative z-10 flex flex-col gap-1">
-            <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider">
-              Total Revenue
-            </h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black tracking-tight text-white">
-                रू {totalRevenue.toLocaleString()}
-              </span>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-400">
-                +12%
-              </span>
-            </div>
-            <p className="text-slate-400 text-sm mt-1">
-              Year to Date • {entries.length} Projects
-            </p>
-          </div>
-          <div className="mt-6 flex gap-3">
-            <button className="flex-1 rounded-lg bg-surface-border hover:bg-[#323749] py-2.5 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">
+      {/* Projects Section */}
+      <div className="px-4 pt-6 pb-4">
+        <div className="mb-4 flex items-center justify-between px-1">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            Projects
+          </h3>
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerateReport}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">
                 bar_chart
               </span>
               Report
             </button>
             <button
               onClick={handleDownloadInvoice}
-              className="flex-1 rounded-lg bg-primary hover:bg-primary-dark py-2.5 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+              className="flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary-light rounded-lg text-sm font-medium transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[16px]">
                 request_quote
               </span>
               Invoice
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="px-4 py-4">
-        {/* New Project Entry */}
-        <div className="rounded-2xl bg-white dark:bg-surface-dark p-5 border border-slate-200 dark:border-surface-border shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">
-                add_circle
-              </span>
-              New Project Entry
-            </h3>
-          </div>
-          <form onSubmit={handleCreateEntry} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
-                Project Details
-              </label>
-              <input
-                name="title"
-                value={newProject.title}
-                onChange={handleProjectChange}
-                className="w-full rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                placeholder="Project Title (e.g. Ep. 45 - AI Future)"
-                type="text"
-                required
-              />
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-[2] flex flex-col gap-2">
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
-                  Service
-                </label>
-                <div className="relative">
-                  <select
-                    name="service"
-                    value={newProject.service}
-                    onChange={handleProjectChange}
-                    className="w-full appearance-none rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] pl-3 pr-8 py-3 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                    required
-                  >
-                    <option value="">Select Type</option>
-                    <option value="podcast">Podcast Edit</option>
-                    <option value="youtube">YouTube Cut</option>
-                    <option value="short">Short/Reel</option>
-                    <option value="thumbnail">Thumbnail</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 dark:text-slate-400">
-                    <span className="material-symbols-outlined text-[20px]">
-                      expand_more
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex-[1] flex flex-col gap-2">
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
-                  Qty
-                </label>
-                <input
-                  name="quantity"
-                  value={newProject.quantity}
-                  onChange={handleProjectChange}
-                  className="w-full rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] px-2 py-3 text-sm text-center text-slate-900 dark:text-white placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                  placeholder="1"
-                  type="number"
-                  min="1"
-                  required
-                />
-              </div>
-              <div className="flex-[1.5] flex flex-col gap-2">
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
-                  Amount
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-2 text-slate-500 dark:text-slate-400 text-sm">
-                    Rs.
-                  </span>
-                  <input
-                    name="amount"
-                    value={newProject.amount}
-                    onChange={handleProjectChange}
-                    className="w-full rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] pl-8 pr-2 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                    placeholder="0"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-transform active:scale-[0.98] hover:bg-primary-light"
-            >
-              <span>Create Entry</span>
-              <span className="material-symbols-outlined text-[18px]">
-                arrow_forward
-              </span>
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="px-4 pb-4">
-        <div className="mb-3 flex items-center justify-between px-1">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            Recent Entries
-          </h3>
-          <button className="text-xs font-medium text-primary hover:text-primary-light">
-            View All
-          </button>
-        </div>
 
         <div className="flex flex-col gap-3">
-          {entries.map((entry) => (
-            <div
-              key={entry.id}
-              className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-surface-border bg-white dark:bg-surface-dark p-4 transition-all hover:border-primary/50 dark:hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-[#202330]"
-            >
-              <div className="flex flex-col gap-1 min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${getServiceBadgeColor(entry.service)}`}
-                  >
-                    {entry.service}
-                  </span>
-                  <span className="rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-500/20">
-                    {entry.quantity}x
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {entry.date}
-                  </span>
-                </div>
-                <h4 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                  {entry.title}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Editor:{" "}
-                  <span className="text-slate-900 dark:text-white">
-                    {entry.editor}
-                  </span>
-                </p>
-              </div>
+          {/* Combine regular entries with completed projects for this client */}
+          {[...entries, ...getClientCompletedProjects()].map((project) => {
+            const item = {
+              ...project,
+              service: project.service || project.service,
+              quantity: project.quantity || 1,
+              date:
+                project.date ||
+                (project.completedDate
+                  ? new Date(project.completedDate).toLocaleDateString(
+                      "en-US",
+                      {
+                        month: "short",
+                        day: "numeric",
+                      },
+                    )
+                  : new Date().toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })),
+              editor: project.editor || project.completedBy || "Unknown",
+              editorInitial: project.editor
+                ? project.editor.charAt(0).toUpperCase()
+                : project.completedBy
+                  ? project.completedBy.charAt(0).toUpperCase()
+                  : "E",
+              editorColor: project.editorColor || "from-blue-500 to-blue-600",
+              isCompleted: !!project.completedDate,
+            };
 
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col items-end gap-2">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    रू {(entry.amount * entry.quantity).toFixed(2)}
-                  </span>
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${entry.editorColor} text-xs font-bold text-white shadow-md ring-2 ring-background-light dark:ring-background-dark`}
-                  >
-                    {entry.editorInitial}
+            return (
+              <div
+                key={item.id}
+                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-surface-border bg-white dark:bg-surface-dark p-4 transition-all hover:border-primary/50 dark:hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-[#202330]"
+              >
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${getServiceBadgeColor(item.service)}`}
+                    >
+                      {item.service}
+                    </span>
+                    <span className="rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-500/20">
+                      {item.quantity}x
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {item.date}
+                    </span>
+                  </div>
+                  <h4 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Editor:{" "}
+                    <span className="text-slate-900 dark:text-white">
+                      {item.editor}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-end gap-2">
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.editorColor} text-xs font-bold text-white shadow-md ring-2 ring-background-light dark:ring-background-dark`}
+                    >
+                      {item.editorInitial}
+                    </div>
+                    {item.isCompleted && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        Completed
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEditEntry(item)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                      title="Edit Project"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        edit
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleDuplicateEntry(item)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                      title="Duplicate Project"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        content_copy
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(item.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="Delete Project"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        delete
+                      </span>
+                    </button>
                   </div>
                 </div>
-
-                {/* Entry Menu */}
-                <div className="relative">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowEntryMenu(
-                        showEntryMenu === entry.id ? null : entry.id,
-                      );
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      more_vert
-                    </span>
-                  </button>
-
-                  {showEntryMenu === entry.id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowEntryMenu(null)}
-                      />
-                      <div className="absolute right-0 top-10 z-20 w-44 bg-white dark:bg-surface-dark rounded-lg shadow-lg border border-slate-200 dark:border-surface-border py-2">
-                        <button
-                          onClick={() => handleEditEntry(entry)}
-                          className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            edit
-                          </span>
-                          Edit Entry
-                        </button>
-                        <button
-                          onClick={() => handleDuplicateEntry(entry)}
-                          className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            content_copy
-                          </span>
-                          Duplicate
-                        </button>
-                        <hr className="my-2 border-slate-200 dark:border-surface-border" />
-                        <button
-                          onClick={() => setShowDeleteConfirm(entry.id)}
-                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            delete
-                          </span>
-                          Delete Entry
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
               </div>
+            );
+          })}
+
+          {[...entries, ...getClientCompletedProjects()].length === 0 && (
+            <div className="text-center py-12">
+              <div className="mb-4">
+                <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600">
+                  folder_open
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                No projects yet
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Your projects will appear here once they're created.
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -640,7 +557,7 @@ export default function ClientWorkspace() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 w-full max-w-md border border-slate-200 dark:border-surface-border">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-              Edit Entry
+              Edit Project
             </h3>
             <form onSubmit={handleUpdateEntry} className="space-y-4">
               <div>
@@ -663,6 +580,27 @@ export default function ClientWorkspace() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Service Type
+                  </label>
+                  <select
+                    value={editingEntry.service}
+                    onChange={(e) =>
+                      setEditingEntry((prev) => ({
+                        ...prev,
+                        service: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="Podcast">Podcast</option>
+                    <option value="YouTube">YouTube</option>
+                    <option value="Shorts">Shorts</option>
+                    <option value="Sponsor">Sponsor</option>
+                    <option value="Thumbnail">Thumbnail</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                     Quantity
                   </label>
                   <input
@@ -679,25 +617,6 @@ export default function ClientWorkspace() {
                     required
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                    Amount
-                  </label>
-                  <input
-                    type="number"
-                    value={editingEntry.amount}
-                    onChange={(e) =>
-                      setEditingEntry((prev) => ({
-                        ...prev,
-                        amount: parseFloat(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-[#101218] px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button
@@ -711,7 +630,7 @@ export default function ClientWorkspace() {
                   type="submit"
                   className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-primary hover:bg-primary-light rounded-xl transition-colors"
                 >
-                  Update Entry
+                  Update Project
                 </button>
               </div>
             </form>
@@ -731,7 +650,7 @@ export default function ClientWorkspace() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Delete Entry
+                  Delete Project
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   This action cannot be undone.

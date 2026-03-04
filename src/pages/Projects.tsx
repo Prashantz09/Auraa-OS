@@ -7,7 +7,7 @@ const SAMPLE_PROJECTS = [
     title: "TechTalk Podcast Ep. 42",
     client: "TechTalk Media",
     service: "Podcast",
-    editor: "Patrick S.",
+    editor: "Bishal",
     date: "2024-03-15",
     status: "working",
     description: "Full podcast production with editing and mixing",
@@ -19,11 +19,11 @@ const SAMPLE_PROJECTS = [
     title: "YouTube Product Review",
     client: "Creative Studios",
     service: "YouTube",
-    editor: "Alex M.",
+    editor: "Prash",
     date: "2024-03-18",
     status: "working",
     description: "Product review video with graphics and editing",
-    deadline: "2024-03-25",
+    deadline: "2024-03-22",
     priority: "medium",
   },
   {
@@ -31,11 +31,11 @@ const SAMPLE_PROJECTS = [
     title: "Instagram Reels Package",
     client: "Brand Agency",
     service: "Reels",
-    editor: "Patrick S.",
+    editor: "Nishan",
     date: "2024-03-20",
     status: "completed",
     description: "5 Instagram Reels with trending audio",
-    deadline: "2024-03-15",
+    deadline: "2024-03-18",
     priority: "low",
   },
   {
@@ -43,7 +43,7 @@ const SAMPLE_PROJECTS = [
     title: "Thumbnail Design Pack",
     client: "Production House",
     service: "Graphics",
-    editor: "Alex M.",
+    editor: "Bishal",
     date: "2024-04-01",
     status: "pending",
     description: "Custom thumbnails for YouTube series",
@@ -55,35 +55,35 @@ const SAMPLE_PROJECTS = [
     title: "Podcast Series Launch",
     client: "TechFlow Dynamics",
     service: "Podcast",
-    editor: "Sarah K.",
+    editor: "Prash",
     date: "2024-03-25",
     status: "working",
     description: "Launch series for new podcast channel",
-    deadline: "2024-04-01",
-    priority: "high",
+    deadline: "2024-03-30",
+    priority: "medium",
   },
   {
     id: 6,
     title: "YouTube Shorts Campaign",
     client: "Nebula Studios",
     service: "Shorts",
-    editor: "Mike R.",
+    editor: "Nishan",
     date: "2024-03-22",
     status: "working",
     description: "10 YouTube Shorts for brand campaign",
-    deadline: "2024-03-30",
-    priority: "medium",
+    deadline: "2024-03-25",
+    priority: "high",
   },
   {
     id: 7,
     title: "Brand Video Production",
     client: "Apex Consulting",
     service: "YouTube",
-    editor: "Patrick S.",
+    editor: "Bishal",
     date: "2024-03-28",
     status: "pending",
     description: "Corporate brand video with interviews",
-    deadline: "2024-04-10",
+    deadline: "2024-04-05",
     priority: "medium",
   },
   {
@@ -91,7 +91,7 @@ const SAMPLE_PROJECTS = [
     title: "Social Media Graphics",
     client: "Zenith Health",
     service: "Graphics",
-    editor: "Alex M.",
+    editor: "Prash",
     date: "2024-03-30",
     status: "completed",
     description: "Social media graphics package for health brand",
@@ -103,7 +103,7 @@ const SAMPLE_PROJECTS = [
     title: "TikTok Content Series",
     client: "Creative Studios",
     service: "TikTok",
-    editor: "Sarah K.",
+    editor: "Nishan",
     date: "2024-04-02",
     status: "working",
     description: "TikTok series with trending effects",
@@ -115,11 +115,11 @@ const SAMPLE_PROJECTS = [
     title: "Trailer Production",
     client: "Production House",
     service: "Trailer Only",
-    editor: "Mike R.",
+    editor: "Bishal",
     date: "2024-04-05",
     status: "pending",
     description: "Movie trailer for upcoming film",
-    deadline: "2024-04-15",
+    deadline: "2024-04-10",
     priority: "high",
   },
   {
@@ -127,11 +127,11 @@ const SAMPLE_PROJECTS = [
     title: "Podcast Interview Series",
     client: "TechFlow Dynamics",
     service: "Podcast",
-    editor: "Patrick S.",
+    editor: "Prash",
     date: "2024-04-03",
     status: "working",
     description: "Interview series with industry experts",
-    deadline: "2024-04-20",
+    deadline: "2024-04-07",
     priority: "medium",
   },
   {
@@ -139,7 +139,7 @@ const SAMPLE_PROJECTS = [
     title: "YouTube Explainer Video",
     client: "Brand Agency",
     service: "YouTube",
-    editor: "Alex M.",
+    editor: "Nishan",
     date: "2024-04-08",
     status: "pending",
     description: "Animated explainer video for product",
@@ -148,7 +148,7 @@ const SAMPLE_PROJECTS = [
   },
 ];
 
-const EDITORS = ["Patrick S.", "Alex M.", "Sarah K.", "Mike R."];
+const EDITORS = ["Bishal", "Prash", "Nishan"];
 const SERVICES = [
   {
     value: "YouTube",
@@ -212,7 +212,28 @@ const CLIENTS = [
 ];
 
 export default function Projects() {
-  const [projects, setProjects] = useState(SAMPLE_PROJECTS);
+  // Load projects from localStorage or use sample data
+  const [projects, setProjects] = useState(() => {
+    const savedProjects = localStorage.getItem("auraa-projects");
+    return savedProjects ? JSON.parse(savedProjects) : SAMPLE_PROJECTS;
+  });
+
+  // Load clients from localStorage
+  const [clients, setClients] = useState(() => {
+    const savedClients = localStorage.getItem("auraa-clients");
+    return savedClients ? JSON.parse(savedClients) : [];
+  });
+
+  // Save clients to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("auraa-clients", JSON.stringify(clients));
+  }, [clients]);
+
+  // Save projects to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("auraa-projects", JSON.stringify(projects));
+  }, [projects]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClient, setFilterClient] = useState("all");
   const [filterService, setFilterService] = useState("all");
@@ -306,6 +327,32 @@ export default function Projects() {
     };
 
     setProjects((prev) => [project, ...prev]);
+
+    // Update client's project count and add project to client
+    const updatedClients = clients.map((client) => {
+      if (client.name === formData.client) {
+        return {
+          ...client,
+          monthlyProjects: client.monthlyProjects + 1,
+          totalProjects: client.totalProjects + 1,
+          thisMonthProjects: [
+            ...client.thisMonthProjects,
+            {
+              id: project.id,
+              title: project.title,
+              date: new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              }),
+              service: project.service,
+            },
+          ],
+        };
+      }
+      return client;
+    });
+
+    setClients(updatedClients);
     setShowAddForm(false);
     setFormData({
       title: "",
@@ -314,6 +361,9 @@ export default function Projects() {
       editor: "",
       date: "",
       status: "working",
+      description: "",
+      deadline: "",
+      priority: "medium",
     });
   };
 
@@ -325,9 +375,59 @@ export default function Projects() {
   const handleUpdateProject = (e: React.FormEvent) => {
     e.preventDefault();
 
-    setProjects((prev) =>
-      prev.map((p) => (p.id === editingProject.id ? formData : p)),
-    );
+    const updatedProject = { ...formData, id: editingProject.id };
+
+    // Check if project is being marked as completed
+    const isCompleting =
+      formData.status === "completed" && editingProject.status !== "completed";
+
+    if (isCompleting) {
+      // Move to completed projects
+      const completedProject = {
+        ...updatedProject,
+        client: updatedProject.client, // Explicitly preserve client field
+        completedDate: new Date().toISOString(),
+        completedBy: editingProject.editor,
+      };
+
+      // Add to completed projects localStorage
+      const existingCompleted = JSON.parse(
+        localStorage.getItem("auraa-completed-projects") || "[]",
+      );
+      localStorage.setItem(
+        "auraa-completed-projects",
+        JSON.stringify([...existingCompleted, completedProject]),
+      );
+
+      // Remove from active projects
+      setProjects((prev) => prev.filter((p) => p.id !== editingProject.id));
+
+      // Update client's project counts
+      const updatedClients = clients.map((client) => {
+        if (client.name === updatedProject.client) {
+          return {
+            ...client,
+            monthlyProjects: Math.max(0, client.monthlyProjects - 1),
+            totalProjects: Math.max(0, client.totalProjects - 1),
+            thisMonthProjects: client.thisMonthProjects.filter(
+              (p) => p.id !== editingProject.id,
+            ),
+          };
+        }
+        return client;
+      });
+
+      setClients(updatedClients);
+
+      alert(
+        `Project "${updatedProject.title}" marked as completed and moved to client workspace!`,
+      );
+    } else {
+      // Regular update
+      setProjects((prev) =>
+        prev.map((p) => (p.id === editingProject.id ? updatedProject : p)),
+      );
+    }
 
     setEditingProject(null);
     setFormData({
@@ -337,11 +437,35 @@ export default function Projects() {
       editor: "",
       date: "",
       status: "working",
+      description: "",
+      deadline: "",
+      priority: "medium",
     });
   };
 
   const handleDeleteProject = (id: number) => {
+    const projectToDelete = projects.find((p) => p.id === id);
+
     setProjects((prev) => prev.filter((p) => p.id !== id));
+
+    // Update client's project count and remove project from client
+    if (projectToDelete) {
+      const updatedClients = clients.map((client) => {
+        if (client.name === projectToDelete.client) {
+          return {
+            ...client,
+            monthlyProjects: Math.max(0, client.monthlyProjects - 1),
+            totalProjects: Math.max(0, client.totalProjects - 1),
+            thisMonthProjects: client.thisMonthProjects.filter(
+              (p) => p.id !== id,
+            ),
+          };
+        }
+        return client;
+      });
+
+      setClients(updatedClients);
+    }
   };
 
   const handleProjectClick = (project: any) => {
@@ -412,11 +536,17 @@ export default function Projects() {
                 className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-surface-border bg-white dark:bg-surface-dark text-xs"
               >
                 <option value="all">All Clients</option>
-                {CLIENTS.map((client) => (
-                  <option key={client} value={client}>
-                    {client}
+                {clients.length > 0 ? (
+                  clients.map((client) => (
+                    <option key={client.id} value={client.name}>
+                      {client.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    No clients available
                   </option>
-                ))}
+                )}
               </select>
 
               <select
@@ -507,11 +637,17 @@ export default function Projects() {
               className="px-3 py-2 rounded-lg border border-slate-200 dark:border-surface-border bg-white dark:bg-surface-dark text-sm"
             >
               <option value="all">All Clients</option>
-              {CLIENTS.map((client) => (
-                <option key={client} value={client}>
-                  {client}
+              {clients.length > 0 ? (
+                clients.map((client) => (
+                  <option key={client.id} value={client.name}>
+                    {client.name}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>
+                  No clients available
                 </option>
-              ))}
+              )}
             </select>
 
             <select
@@ -853,11 +989,17 @@ export default function Projects() {
                     required
                   >
                     <option value="">Select Client</option>
-                    {CLIENTS.map((client) => (
-                      <option key={client} value={client}>
-                        {client}
+                    {clients.length > 0 ? (
+                      clients.map((client) => (
+                        <option key={client.id} value={client.name}>
+                          {client.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        No clients available. Add clients first.
                       </option>
-                    ))}
+                    )}
                   </select>
                 </div>
 

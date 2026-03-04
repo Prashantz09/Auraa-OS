@@ -1,36 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// User database
-const USERS = [
-  {
-    id: "prash",
-    password: "admin123",
-    name: "Prash",
-    role: "admin",
-    avatar: "P",
-  },
-  {
-    id: "alex",
-    password: "editor123",
-    name: "Alex",
-    role: "editor",
-    avatar: "A",
-  },
-  {
-    id: "sarah",
-    password: "editor123",
-    name: "Sarah",
-    role: "editor",
-    avatar: "S",
-  },
-];
+// Default admin account
+const DEFAULT_ADMIN = {
+  id: "prash",
+  password: "admin123",
+  name: "Prash",
+  role: "admin",
+  avatar: "P",
+};
 
 export default function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ userId: "", password: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Load users from localStorage on component mount
+  useEffect(() => {
+    const savedUsers = localStorage.getItem("auraa-users");
+    if (savedUsers) {
+      setUsers(JSON.parse(savedUsers));
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,19 +33,38 @@ export default function Login() {
 
     // Simulate authentication
     setTimeout(() => {
-      const user = USERS.find(
+      // Check admin first
+      if (
+        formData.userId.toLowerCase() === DEFAULT_ADMIN.id &&
+        formData.password === DEFAULT_ADMIN.password
+      ) {
+        // Store user session
+        localStorage.setItem("auraa_user", JSON.stringify(DEFAULT_ADMIN));
+        navigate("/dashboard");
+        return;
+      }
+
+      // Check created users
+      const createdUser = users.find(
         (u) =>
           u.id === formData.userId.toLowerCase() &&
           u.password === formData.password,
       );
 
-      if (user) {
+      if (createdUser) {
         // Store user session
-        localStorage.setItem("auraa_user", JSON.stringify(user));
+        const userSession = {
+          id: createdUser.id,
+          name: createdUser.name,
+          role: createdUser.role,
+          avatar: createdUser.avatar,
+        };
+        localStorage.setItem("auraa_user", JSON.stringify(userSession));
         navigate("/dashboard");
       } else {
-        setError("Invalid User ID or password");
+        setError("Invalid user ID or password");
       }
+
       setIsLoading(false);
     }, 1000);
   };
@@ -156,10 +169,20 @@ export default function Login() {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Enter password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {showPassword ? "visibility_off" : "visibility"}
+                </span>
+              </button>
             </div>
           </div>
 

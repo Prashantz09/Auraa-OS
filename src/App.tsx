@@ -9,7 +9,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ClientDirectory from "./pages/ClientDirectory";
 import ClientWorkspace from "./pages/ClientWorkspace";
-import FinancialOverview from "./pages/FinancialOverview";
 import Projects from "./pages/Projects";
 import Settings from "./pages/Settings";
 
@@ -22,7 +21,6 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/clients" element={<ClientDirectory />} />
           <Route path="/clients/:id" element={<ClientWorkspace />} />
-          <Route path="/finance" element={<FinancialOverview />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

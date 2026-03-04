@@ -2,33 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Sample data
-const CURRENT_PROJECTS = [
-  {
-    id: 1,
-    title: "TechTalk Podcast Series",
-    client: "TechTalk Media",
-    deadline: "2024-03-15",
-    status: "active",
-    progress: 75,
-  },
-  {
-    id: 2,
-    title: "YouTube Content Creation",
-    client: "Creative Studios",
-    deadline: "2024-03-18",
-    status: "active",
-    progress: 45,
-  },
-  {
-    id: 3,
-    title: "Social Media Campaign",
-    client: "Brand Agency",
-    deadline: "2024-03-20",
-    status: "active",
-    progress: 90,
-  },
-];
-
 const UPCOMING_DEADLINES = [
   {
     id: 1,
@@ -53,44 +26,66 @@ const UPCOMING_DEADLINES = [
   },
 ];
 
-const RECENT_ACTIVITY = [
+// Motivational quotes
+const MOTIVATIONAL_QUOTES = [
   {
-    id: 1,
-    user: "Sarah",
-    action: "uploaded new assets for",
-    target: "Nike Campaign",
-    time: "10 minutes ago",
-    type: "upload",
+    text: "The only way to do great work is to love what you do.",
+    author: "Steve Jobs",
   },
   {
-    id: 2,
-    user: "Mike",
-    action: "approved budget for",
-    target: "Q3 Promo",
-    time: "2 hours ago",
-    type: "approval",
+    text: "Innovation distinguishes between a leader and a follower.",
+    author: "Steve Jobs",
   },
   {
-    id: 3,
-    user: "System",
-    action: "marked project as completed",
-    target: "TechLaunch v2",
-    time: "Yesterday at 4:30 PM",
-    type: "completion",
+    text: "Life is 10% what happens to you and 90% how you react to it.",
+    author: "Charles R. Swindoll",
   },
   {
-    id: 4,
-    user: "System",
-    action: "new client onboarded",
-    target: "Pixel Studio",
-    time: "Yesterday at 11:00 AM",
-    type: "onboarding",
+    text: "The future belongs to those who believe in the beauty of their dreams.",
+    author: "Eleanor Roosevelt",
+  },
+  {
+    text: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    author: "Winston Churchill",
+  },
+  {
+    text: "Believe you can and you're halfway there.",
+    author: "Theodore Roosevelt",
+  },
+  {
+    text: "The only impossible journey is the one you never begin.",
+    author: "Tony Robbins",
+  },
+  {
+    text: "Don't watch the clock; do what it does. Keep going.",
+    author: "Sam Levenson",
+  },
+  {
+    text: "A year from now you may wish you had started today.",
+    author: "Karen Lamb",
+  },
+  {
+    text: "The harder you work for something, the greater you'll feel when you achieve it.",
+    author: "Anonymous",
+  },
+  {
+    text: "Dream bigger. Do bigger.",
+    author: "Anonymous",
+  },
+  {
+    text: "Success doesn't just find you. You have to go out and get it.",
+    author: "Anonymous",
   },
 ];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [currentQuote, setCurrentQuote] = useState(MOTIVATIONAL_QUOTES[0]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
     const userData = localStorage.getItem("auraa_user");
@@ -100,6 +95,91 @@ export default function Dashboard() {
       navigate("/");
     }
   }, [navigate]);
+
+  // Load notifications from localStorage
+  useEffect(() => {
+    const savedNotifications = localStorage.getItem("auraa-notifications");
+    if (savedNotifications) {
+      const parsed = JSON.parse(savedNotifications);
+      // Convert string dates back to Date objects and filter out expired ones
+      const validNotifications = parsed
+        .map((n: any) => ({ ...n, createdAt: new Date(n.createdAt) }))
+        .filter((n: any) => {
+          const now = new Date();
+          const timeDiff = now.getTime() - n.createdAt.getTime();
+          return timeDiff < 48 * 60 * 60 * 1000; // Less than 48 hours
+        });
+      setNotifications(validNotifications);
+    }
+  }, []);
+
+  // Load clients from localStorage
+  useEffect(() => {
+    const savedClients = localStorage.getItem("auraa-clients");
+    if (savedClients) {
+      setClients(JSON.parse(savedClients));
+    }
+  }, []);
+
+  // Load projects from localStorage
+  useEffect(() => {
+    const savedProjects = localStorage.getItem("auraa-projects");
+    if (savedProjects) {
+      setProjects(JSON.parse(savedProjects));
+    }
+  }, []);
+
+  // Update quote every 2 hours
+  useEffect(() => {
+    const updateQuote = () => {
+      const randomIndex = Math.floor(
+        Math.random() * MOTIVATIONAL_QUOTES.length,
+      );
+      setCurrentQuote(MOTIVATIONAL_QUOTES[randomIndex]);
+    };
+
+    // Initial quote
+    updateQuote();
+
+    // Update every 2 hours (2 * 60 * 60 * 1000 milliseconds)
+    const quoteInterval = setInterval(updateQuote, 2 * 60 * 60 * 1000);
+
+    return () => clearInterval(quoteInterval);
+  }, []);
+
+  // Calculate upcoming deadlines from projects
+  const getUpcomingDeadlines = () => {
+    if (!projects.length) return [];
+
+    const now = new Date();
+    return projects
+      .filter((project) => project.deadline && new Date(project.deadline) > now)
+      .map((project) => {
+        const deadlineDate = new Date(project.deadline);
+        const daysLeft = Math.ceil(
+          (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        return {
+          id: project.id,
+          title: project.title,
+          deadline: project.deadline,
+          daysLeft: daysLeft,
+          priority: project.priority || "medium",
+        };
+      })
+      .sort((a, b) => a.daysLeft - b.daysLeft) // Sort by closest deadline first
+      .slice(0, 5); // Show max 5 upcoming deadlines
+  };
+
+  // Update date and time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -114,19 +194,45 @@ export default function Dashboard() {
     }
   };
 
-  const getActivityIcon = (type: string) => {
+  const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "upload":
-        return "upload_file";
-      case "approval":
-        return "check_circle";
-      case "completion":
-        return "task_alt";
-      case "onboarding":
-        return "person_add";
+      case "project":
+        return "work";
+      case "client":
+        return "people";
+      case "holiday":
+        return "celebration";
+      case "update":
+        return "system_update";
       default:
-        return "activity";
+        return "notifications";
     }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case "project":
+        return "bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400";
+      case "client":
+        return "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400";
+      case "holiday":
+        return "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400";
+      case "update":
+        return "bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400";
+      default:
+        return "bg-slate-100 text-slate-600 dark:bg-slate-900/20 dark:text-slate-400";
+    }
+  };
+
+  const formatDateTime = (date: Date) => {
+    return {
+      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      date: date.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    };
   };
 
   if (!currentUser) {
@@ -137,17 +243,22 @@ export default function Dashboard() {
     );
   }
 
+  const { time, date } = formatDateTime(currentDateTime);
+
   return (
     <div className="flex-1 overflow-y-auto pb-24">
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-12 pb-4 sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-slate-200 dark:border-surface-border">
         <div className="flex items-center gap-3">
-          <div className="relative">
+          <button
+            onClick={() => navigate("/settings")}
+            className="relative hover:scale-105 transition-transform duration-200"
+          >
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20">
               {currentUser.avatar}
             </div>
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background-light dark:border-background-dark rounded-full"></div>
-          </div>
+          </button>
           <div>
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Currently Active
@@ -157,12 +268,18 @@ export default function Dashboard() {
             </h2>
           </div>
         </div>
-        <button className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
-          <span className="material-symbols-outlined text-2xl">
-            notifications
-          </span>
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
+
+        <div className="flex items-center gap-3">
+          {/* Date and Time Button */}
+          <button className="flex flex-col items-end px-3 py-2 rounded-xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors shadow-sm">
+            <span className="text-xs font-bold text-slate-900 dark:text-white leading-none">
+              {time}
+            </span>
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-none mt-0.5">
+              {date}
+            </span>
+          </button>
+        </div>
       </header>
 
       <div className="px-5 py-6 space-y-6">
@@ -193,88 +310,132 @@ export default function Dashboard() {
               Active Clients
             </p>
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-              12
+              {
+                clients.filter(
+                  (c) => c.status === "Active" || c.status === "active",
+                ).length
+              }
             </h3>
           </div>
 
           <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-slate-200 dark:border-surface-border shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <span className="material-symbols-outlined">movie</span>
+                <span className="material-symbols-outlined">notifications</span>
               </div>
-              <div className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full">
                 <span className="material-symbols-outlined text-[14px]">
-                  trending_up
+                  priority_high
                 </span>
-                12%
+                {notifications.filter((n) => !n.read).length}
               </div>
             </div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              Active Projects
+              Unread Notifications
             </p>
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {CURRENT_PROJECTS.length}
+              {notifications.filter((n) => !n.read).length}
             </h3>
           </div>
         </div>
 
-        {/* Current Working Projects */}
+        {/* Admin Notifications */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              Current Projects
+              Notifications from Admin
             </h3>
-            <button
-              onClick={() => navigate("/projects")}
-              className="text-xs font-medium text-primary hover:text-primary-light transition-colors"
-            >
-              View All
+            <button className="text-xs font-medium text-primary hover:text-primary-light transition-colors">
+              Mark All Read
             </button>
           </div>
 
           <div className="space-y-3">
-            {CURRENT_PROJECTS.map((project) => (
-              <div
-                key={project.id}
-                className="bg-white dark:bg-surface-dark rounded-xl p-4 border border-slate-200 dark:border-surface-border"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                      {project.title}
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {project.client}
+            {notifications.length === 0 ? (
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-xl p-6 border border-primary/20 dark:border-primary/30">
+                <div className="text-center">
+                  <div className="mb-4">
+                    <span className="material-symbols-outlined text-4xl text-primary/60 dark:text-primary/40">
+                      lightbulb
+                    </span>
+                  </div>
+                  <blockquote className="space-y-3">
+                    <p className="text-lg font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+                      "{currentQuote.text}"
                     </p>
-                  </div>
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
-                    {project.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-slate-400">
-                      schedule
-                    </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {project.deadline}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {project.progress}%
-                    </span>
-                    <div className="w-16 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                      <div
-                        className="h-1.5 rounded-full bg-primary"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
+                    <footer className="text-sm text-slate-600 dark:text-slate-400">
+                      — {currentQuote.author}
+                    </footer>
+                  </blockquote>
+                  <div className="mt-4 pt-4 border-t border-primary/20 dark:border-primary/30">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Daily motivation • Updates every 2 hours
+                    </p>
                   </div>
                 </div>
               </div>
-            ))}
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`bg-white dark:bg-surface-dark rounded-xl p-4 border border-slate-200 dark:border-surface-border transition-all hover:border-primary/30 ${
+                    !notification.read
+                      ? "ring-1 ring-primary/20 bg-primary/5 dark:bg-primary/5"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${getNotificationColor(notification.category)}`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        {getNotificationIcon(notification.category)}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                          {notification.title}
+                        </h4>
+                        <div className="flex items-center gap-2 ml-2">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(notification.priority)}`}
+                          >
+                            {notification.priority}
+                          </span>
+                          {!notification.read && (
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mb-2 leading-relaxed">
+                        {notification.message}
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[14px] text-slate-400">
+                          schedule
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {notification.createdAt.toLocaleString([], {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="text-xs text-slate-400">•</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 capitalize">
+                          {notification.category}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -290,75 +451,47 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-2">
-            {UPCOMING_DEADLINES.map((deadline) => (
-              <div
-                key={deadline.id}
-                className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-surface-border"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${deadline.priority === "high" ? "bg-red-500" : deadline.priority === "medium" ? "bg-amber-500" : "bg-green-500"}`}
-                  ></div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
-                      {deadline.title}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {deadline.deadline}
-                    </p>
+            {getUpcomingDeadlines().length === 0 ? (
+              <div className="text-center py-8">
+                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 mb-3">
+                  event_available
+                </span>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No upcoming deadlines
+                </p>
+              </div>
+            ) : (
+              getUpcomingDeadlines().map((deadline) => (
+                <div
+                  key={deadline.id}
+                  className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-surface-border"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-2 h-2 rounded-full ${deadline.priority === "high" ? "bg-red-500" : deadline.priority === "medium" ? "bg-amber-500" : "bg-green-500"}`}
+                    ></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                        {deadline.title}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {deadline.deadline}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(deadline.priority)}`}
+                    >
+                      {deadline.priority}
+                    </span>
+                    <span className="text-xs font-medium text-slate-900 dark:text-white">
+                      {deadline.daysLeft} days
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(deadline.priority)}`}
-                  >
-                    {deadline.priority}
-                  </span>
-                  <span className="text-xs font-medium text-slate-900 dark:text-white">
-                    {deadline.daysLeft} days
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              Recent Activity
-            </h3>
-            <button className="text-xs font-medium text-primary hover:text-primary-light transition-colors">
-              View All
-            </button>
-          </div>
-
-          <div className="relative pl-4 space-y-4 before:absolute before:inset-y-2 before:left-[5px] before:w-px before:bg-slate-200 dark:before:bg-slate-800">
-            {RECENT_ACTIVITY.map((activity) => (
-              <div key={activity.id} className="relative">
-                <div className="absolute -left-4 top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background-light dark:ring-background-dark"></div>
-                <div className="flex items-start gap-2">
-                  <span className="material-symbols-outlined text-[16px] text-slate-400 mt-0.5">
-                    {getActivityIcon(activity.type)}
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-900 dark:text-slate-200">
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {activity.user}
-                      </span>{" "}
-                      {activity.action}{" "}
-                      <span className="text-primary font-medium">
-                        {activity.target}
-                      </span>
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
