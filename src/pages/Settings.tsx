@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import DataManager from "../utils/dataManager";
 
 // Sample users data - only admin remains, other users must be created
 const SAMPLE_USERS = [
@@ -19,10 +20,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const [showAddUser, setShowAddUser] = useState(false);
   const [showUserPassword, setShowUserPassword] = useState(false);
-  const [users, setUsers] = useState(() => {
-    const savedUsers = localStorage.getItem("auraa-users");
-    return savedUsers ? JSON.parse(savedUsers) : SAMPLE_USERS;
-  });
+  const [users, setUsers] = useState(() => DataManager.getUsers());
   const [editingUser, setEditingUser] = useState(null);
 
   // Notification state
@@ -187,26 +185,31 @@ export default function Settings() {
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const user = {
-      id: newUser.userId,
-      name: newUser.name,
-      password: newUser.password,
-      role: newUser.role,
-      status: "active",
-      avatar: newUser.name.charAt(0).toUpperCase(),
-    };
+    try {
+      const user = {
+        name: newUser.name,
+        password: newUser.password,
+        role: newUser.role as "admin" | "editor" | "viewer",
+        status: "active" as const,
+        avatar: newUser.name.charAt(0).toUpperCase(),
+      };
 
-    const updatedUsers = [...users, user];
-    setUsers(updatedUsers);
-    localStorage.setItem("auraa-users", JSON.stringify(updatedUsers));
-    setShowAddUser(false);
-    setNewUser({
-      name: "",
-      userId: "",
-      password: "",
-      role: "editor",
-    });
-    alert("User added successfully!");
+      // Add user using DataManager
+      DataManager.addUser(user);
+
+      // Refresh users list
+      setUsers(DataManager.getUsers());
+      setShowAddUser(false);
+      setNewUser({
+        name: "",
+        userId: "",
+        password: "",
+        role: "editor",
+      });
+      alert("User added successfully! All team members can now see this user.");
+    } catch (error) {
+      alert(`Error adding user: ${error}`);
+    }
   };
 
   const handleUpdateUser = (e: React.FormEvent) => {

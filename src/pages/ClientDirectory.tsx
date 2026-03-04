@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import DataManager from "../utils/dataManager";
 
 // Enhanced sample data for clients with monthly projects
 const CLIENTS = [
@@ -132,16 +133,21 @@ const CLIENTS = [
 ];
 
 export default function ClientDirectory() {
-  // Load clients from localStorage or use sample data
-  const [clients, setClients] = useState(() => {
-    const savedClients = localStorage.getItem("auraa-clients");
-    return savedClients ? JSON.parse(savedClients) : CLIENTS;
-  });
+  // Load clients from DataManager for team collaboration
+  const [clients, setClients] = useState(() => DataManager.getClients());
+  const [currentUser, setCurrentUser] = useState(() =>
+    DataManager.getCurrentUser(),
+  );
 
-  // Save clients to localStorage whenever they change
+  // Save clients to DataManager whenever they change
   useEffect(() => {
-    localStorage.setItem("auraa-clients", JSON.stringify(clients));
+    DataManager.saveClients(clients);
   }, [clients]);
+
+  // Update current user state
+  useEffect(() => {
+    setCurrentUser(DataManager.getCurrentUser());
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddClient, setShowAddClient] = useState(false);
@@ -200,35 +206,43 @@ export default function ClientDirectory() {
       return;
     }
 
-    // Generate unique avatar for this client
-    const avatar = generateClientAvatar(newClient.name.trim());
+    try {
+      // Generate avatar for this client
+      const avatar = generateClientAvatar(newClient.name.trim());
 
-    // Create new client object with unique ID
-    const newClientData = {
-      id: `client_${Date.now()}`, // Generate unique ID
-      name: newClient.name.trim(),
-      email: newClient.email.trim() || "",
-      phone: newClient.phone.trim(),
-      status: "Active",
-      activity: "Just now",
-      monthlyProjects: 0,
-      thisMonthProjects: [],
-      totalProjects: 0,
-      clientSince: new Date().toISOString().split("T")[0],
-      priority: "Medium",
-      budget: "Standard",
-      avatar: avatar, // Add avatar data
-    };
+      // Create new client using DataManager (shared across all users)
+      const newClientData = {
+        name: newClient.name.trim(),
+        email: newClient.email.trim() || "",
+        phone: newClient.phone.trim(),
+        status: "Active" as const,
+        activity: "Just now",
+        monthlyProjects: 0,
+        thisMonthProjects: [],
+        totalProjects: 0,
+        clientSince: new Date().toISOString().split("T")[0],
+        priority: "Medium" as const,
+        budget: "Standard" as const,
+        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClient.name.trim())}&background=${avatar.color.replace("from-", "").replace(" to-", "&color=")}&color=white`, // Use avatar service
+      };
 
-    // Add to clients list
-    setClients((prev) => [...prev, newClientData]);
+      // Add client using DataManager (visible to all users)
+      DataManager.addClient(newClientData);
 
-    // Reset form and close modal
-    setShowAddClient(false);
-    setNewClient({ name: "", email: "", phone: "" });
+      // Refresh clients list
+      setClients(DataManager.getClients());
 
-    // Show success message
-    alert(`Client "${newClientData.name}" added successfully!`);
+      // Reset form and close modal
+      setShowAddClient(false);
+      setNewClient({ name: "", email: "", phone: "" });
+
+      // Show success message
+      alert(
+        `Client "${newClientData.name}" added successfully! All team members can now see this client.`,
+      );
+    } catch (error) {
+      alert(`Error adding client: ${error}`);
+    }
   };
 
   const handleDeleteClient = (clientId: string) => {
@@ -237,7 +251,17 @@ export default function ClientDirectory() {
         "Are you sure you want to delete this client? This action cannot be undone.",
       )
     ) {
-      setClients((prev) => prev.filter((client) => client.id !== clientId));
+      try {
+        // Use DataManager with permission checks
+        const success = DataManager.deleteClient(clientId);
+        if (success) {
+          // Refresh clients list
+          setClients(DataManager.getClients());
+          alert("Client deleted successfully!");
+        }
+      } catch (error) {
+        alert(`Error deleting client: ${error}`);
+      }
     }
   };
 
@@ -459,16 +483,20 @@ export default function ClientDirectory() {
 
               {/* Quick Actions */}
               <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-surface-border">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleDeleteClient(client.id);
-                  }}
-                  className="px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  Delete
-                </button>
+                {/* Delete button - only for admin or creator */}
+                {(currentUser?.role === "admin" ||
+                  client.createdBy === currentUser?.id) && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteClient(client.id);
+                    }}
+                    className="px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    Delete
+                  </button>
+                )}
                 <button className="flex-1 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-surface-border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   Edit Client
                 </button>
