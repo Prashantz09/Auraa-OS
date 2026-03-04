@@ -20,9 +20,18 @@ export default function Login() {
 
   // Load users from localStorage on component mount
   useEffect(() => {
-    const savedUsers = localStorage.getItem("auraa-users");
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
+    try {
+      const savedUsers = localStorage.getItem("auraa-users");
+      console.log("Saved users from localStorage:", savedUsers);
+      if (savedUsers) {
+        const parsedUsers = JSON.parse(savedUsers);
+        console.log("Parsed users:", parsedUsers);
+        setUsers(parsedUsers);
+      } else {
+        console.log("No saved users found in localStorage");
+      }
+    } catch (error) {
+      console.error("Error loading users:", error);
     }
   }, []);
 
@@ -33,36 +42,49 @@ export default function Login() {
 
     // Simulate authentication
     setTimeout(() => {
-      // Check admin first
-      if (
-        formData.userId.toLowerCase() === DEFAULT_ADMIN.id &&
-        formData.password === DEFAULT_ADMIN.password
-      ) {
-        // Store user session
-        localStorage.setItem("auraa_user", JSON.stringify(DEFAULT_ADMIN));
-        navigate("/dashboard");
-        return;
-      }
+      try {
+        console.log("Attempting login with:", formData.userId);
+        console.log("Available users:", users);
 
-      // Check created users
-      const createdUser = users.find(
-        (u) =>
-          u.id === formData.userId.toLowerCase() &&
-          u.password === formData.password,
-      );
+        // Check admin first
+        if (
+          formData.userId.toLowerCase() === DEFAULT_ADMIN.id &&
+          formData.password === DEFAULT_ADMIN.password
+        ) {
+          console.log("Admin login successful");
+          // Store user session
+          localStorage.setItem("auraa_user", JSON.stringify(DEFAULT_ADMIN));
+          navigate("/dashboard");
+          return;
+        }
 
-      if (createdUser) {
-        // Store user session
-        const userSession = {
-          id: createdUser.id,
-          name: createdUser.name,
-          role: createdUser.role,
-          avatar: createdUser.avatar,
-        };
-        localStorage.setItem("auraa_user", JSON.stringify(userSession));
-        navigate("/dashboard");
-      } else {
-        setError("Invalid user ID or password");
+        // Check created users
+        const createdUser = users.find(
+          (u) =>
+            u.id === formData.userId.toLowerCase() &&
+            u.password === formData.password,
+        );
+
+        console.log("Found user:", createdUser);
+
+        if (createdUser) {
+          console.log("User login successful");
+          // Store user session
+          const userSession = {
+            id: createdUser.id,
+            name: createdUser.name,
+            role: createdUser.role,
+            avatar: createdUser.avatar,
+          };
+          localStorage.setItem("auraa_user", JSON.stringify(userSession));
+          navigate("/dashboard");
+        } else {
+          console.log("Login failed - invalid credentials");
+          setError("Invalid user ID or password");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        setError("An error occurred during login");
       }
 
       setIsLoading(false);
