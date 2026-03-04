@@ -13,9 +13,18 @@ export default function MainLayout() {
   }, [navigate]);
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-hidden max-w-md mx-auto w-full border-x border-surface-border bg-background-light dark:bg-background-dark shadow-2xl">
-      <Outlet />
-      <BottomNav />
+    <div className="mobile-container flex flex-col min-h-screen relative overflow-hidden bg-background-light dark:bg-background-dark">
+      {/* Main content area */}
+      <main className="flex-1 overflow-y-auto pb-20 transition-app">
+        <Outlet />
+      </main>
+
+      {/* Bottom navigation - fixed on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background-light dark:bg-background-dark border-t border-surface-border">
+        <div className="mobile-container">
+          <BottomNav />
+        </div>
+      </div>
     </div>
   );
 }

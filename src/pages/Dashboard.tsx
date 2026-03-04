@@ -248,17 +248,14 @@ export default function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto pb-24">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 pt-12 pb-4 sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-slate-200 dark:border-surface-border">
+      <header className="flex items-center justify-between px-5 pt-12 pb-4 sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 border-b border-slate-200 dark:border-surface-border">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/settings")}
-            className="relative hover:scale-105 transition-transform duration-200"
-          >
+          <div className="relative">
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20">
               {currentUser.avatar}
             </div>
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background-light dark:border-background-dark rounded-full"></div>
-          </button>
+          </div>
           <div>
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Currently Active

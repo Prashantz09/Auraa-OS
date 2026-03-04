@@ -204,7 +204,7 @@ export default function Login() {
         {/* Login Form */}
         <form className="space-y-6" onSubmit={handleLogin}>
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm backdrop-blur-sm">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">error</span>
                 {error}
@@ -227,7 +227,7 @@ export default function Login() {
                 </span>
               </div>
               <input
-                className="block w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 pl-11 pr-4 py-4 sm:text-sm transition-all outline-none"
+                className="block w-full rounded-xl border border-gray-700 bg-gray-900/50 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 pl-11 pr-4 py-4 sm:text-sm transition-all outline-none"
                 id="userId"
                 name="userId"
                 value={formData.userId}
@@ -255,7 +255,7 @@ export default function Login() {
                 </span>
               </div>
               <input
-                className="block w-full rounded-xl border border-gray-700 bg-gray-900/50 backdrop-blur-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 pl-11 pr-12 py-4 sm:text-sm transition-all outline-none"
+                className="block w-full rounded-xl border border-gray-700 bg-gray-900/50 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 pl-11 pr-12 py-4 sm:text-sm transition-all outline-none"
                 id="password"
                 name="password"
                 value={formData.password}
@@ -298,7 +298,7 @@ export default function Login() {
         </form>
 
         {/* Available Accounts */}
-        <div className="mt-8 p-4 bg-gray-900/30 backdrop-blur-sm rounded-xl border border-gray-800">
+        <div className="mt-8 p-4 bg-gray-900/30 rounded-xl border border-gray-800">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-medium text-gray-300">
               Available Accounts:
