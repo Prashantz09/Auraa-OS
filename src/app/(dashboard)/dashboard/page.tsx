@@ -230,14 +230,6 @@ export default function DashboardPage() {
       );
     }
 
-    // Log for debugging
-    if (!user) {
-      console.log(
-        `No user found for name: ${userName}, available users:`,
-        usersData.map((u) => u.name),
-      );
-    }
-
     return user?.avatar || null;
   };
 
@@ -478,10 +470,6 @@ export default function DashboardPage() {
                                     alt={kudos.fromUser}
                                     className="w-8 h-8 rounded-full border-2 border-white/20 dark:border-black/20 object-cover shadow-sm"
                                     onError={(e) => {
-                                      console.log(
-                                        `Avatar failed to load for ${kudos.fromUser}:`,
-                                        avatar,
-                                      );
                                       const target =
                                         e.target as HTMLImageElement;
                                       target.style.display = "none";
