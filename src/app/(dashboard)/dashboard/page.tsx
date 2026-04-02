@@ -85,11 +85,6 @@ export default function DashboardPage() {
       });
       setRecentProjects(projects.slice(0, 5));
       setUsersData(usersData); // Store users data for avatar lookup
-      console.log(
-        "Users data loaded:",
-        usersData.length,
-        usersData.map((u) => ({ name: u.name, avatar: u.avatar })),
-      );
       const active = notices
         .filter((n) => Date.now() - n.createdAt <= 48 * 60 * 60 * 1000)
         .sort((a, b) => b.createdAt - a.createdAt);
@@ -435,14 +430,6 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-wrap gap-4 items-start justify-center">
                 {kudosList.map((kudos, i) => {
-                  // Debug logging
-                  console.log(`Kudos ${i}:`, {
-                    fromUser: kudos.fromUser,
-                    createdAt: kudos.createdAt,
-                    formattedTime: formatTime(kudos.createdAt),
-                    avatar: getUserAvatar(kudos.fromUser),
-                  });
-
                   // Generate a stable rotation based on the ID string length and index so it doesn't flicker on re-renders,
                   // but looks random (-3deg to +3deg)
                   const rotation = ((kudos.id.length + i) % 7) - 3;
