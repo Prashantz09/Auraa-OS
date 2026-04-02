@@ -6,8 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "build:clean": "powershell -Command \"Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build\"",
+    "build:skip-checks": "next build --no-lint --no-typecheck",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "next build --no-lint",
     "deploy": "npm run build:clean && vercel --prod --force",
     "deploy:clean": "powershell -Command \"Remove-Item -Recurse -Force .next,.vercel -ErrorAction SilentlyContinue; npm run deploy\""
   },
