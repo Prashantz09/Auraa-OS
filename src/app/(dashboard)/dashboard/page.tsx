@@ -85,6 +85,11 @@ export default function DashboardPage() {
       });
       setRecentProjects(projects.slice(0, 5));
       setUsersData(usersData); // Store users data for avatar lookup
+      console.log(
+        "Users data loaded:",
+        usersData.length,
+        usersData.map((u) => ({ name: u.name, avatar: u.avatar })),
+      );
       const active = notices
         .filter((n) => Date.now() - n.createdAt <= 48 * 60 * 60 * 1000)
         .sort((a, b) => b.createdAt - a.createdAt);
@@ -182,17 +187,54 @@ export default function DashboardPage() {
     },
   ];
 
-  const formatTime = (ts: number) =>
-    new Date(ts).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const formatTime = (ts: number) => {
+    try {
+      const date = new Date(ts);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return "Invalid date";
+      }
 
-  // Helper function to get user avatar by name
+      // Format with relative time for better UX
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+
+      // For older dates, show the actual date
+      return date.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("Date formatting error:", error, "timestamp:", ts);
+      return "Date error";
+    }
+  };
+
+  // Helper function to get user avatar by name (more flexible matching)
   const getUserAvatar = (userName: string) => {
-    const user = usersData.find((u) => u.name === userName);
+    // Try exact match first
+    let user = usersData.find((u) => u.name === userName);
+
+    // If no exact match, try partial match (first name)
+    if (!user) {
+      const firstName = userName.split(" ")[0].toLowerCase();
+      user = usersData.find(
+        (u) =>
+          u.name.toLowerCase().includes(firstName) ||
+          u.name.toLowerCase().startsWith(firstName),
+      );
+    }
+
     return user?.avatar || null;
   };
 
@@ -393,6 +435,14 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-wrap gap-4 items-start justify-center">
                 {kudosList.map((kudos, i) => {
+                  // Debug logging
+                  console.log(`Kudos ${i}:`, {
+                    fromUser: kudos.fromUser,
+                    createdAt: kudos.createdAt,
+                    formattedTime: formatTime(kudos.createdAt),
+                    avatar: getUserAvatar(kudos.fromUser),
+                  });
+
                   // Generate a stable rotation based on the ID string length and index so it doesn't flicker on re-renders,
                   // but looks random (-3deg to +3deg)
                   const rotation = ((kudos.id.length + i) % 7) - 3;
