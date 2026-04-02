@@ -230,6 +230,14 @@ export default function DashboardPage() {
       );
     }
 
+    // Log for debugging
+    if (!user) {
+      console.log(
+        `No user found for name: ${userName}, available users:`,
+        usersData.map((u) => u.name),
+      );
+    }
+
     return user?.avatar || null;
   };
 
@@ -462,25 +470,56 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           {(() => {
                             const avatar = getUserAvatar(kudos.fromUser);
-                            return avatar ? (
-                              <img
-                                src={avatar}
-                                alt={kudos.fromUser}
-                                className="w-6 h-6 rounded-full border border-black/10 dark:border-white/10 object-cover"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300">
-                                {kudos.fromUser.charAt(0).toUpperCase()}
-                              </div>
+                            return (
+                              <>
+                                {avatar ? (
+                                  <img
+                                    src={avatar}
+                                    alt={kudos.fromUser}
+                                    className="w-8 h-8 rounded-full border-2 border-white/20 dark:border-black/20 object-cover shadow-sm"
+                                    onError={(e) => {
+                                      console.log(
+                                        `Avatar failed to load for ${kudos.fromUser}:`,
+                                        avatar,
+                                      );
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                      const fallback =
+                                        target.nextElementSibling as HTMLElement;
+                                      if (fallback) {
+                                        fallback.style.display = "flex";
+                                      }
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm border-2 border-white/20 dark:border-black/20"
+                                  style={{ display: avatar ? "none" : "flex" }}
+                                >
+                                  {kudos.fromUser.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-xs font-bold opacity-90">
+                                  {kudos.fromUser.split(" ")[0]}
+                                </span>
+                              </>
                             );
                           })()}
-                          <span className="text-xs font-bold opacity-75">
-                            — {kudos.fromUser.split(" ")[0]}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] font-semibold opacity-60 block">
+                            {formatTime(kudos.createdAt)}
+                          </span>
+                          <span className="text-[8px] opacity-40 uppercase tracking-wider block">
+                            {new Date(kudos.createdAt).toLocaleDateString(
+                              undefined,
+                              {
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </span>
                         </div>
-                        <span className="text-[9px] font-bold opacity-40 uppercase tracking-widest">
-                          {formatTime(kudos.createdAt)}
-                        </span>
                       </div>
                     </div>
                   );
